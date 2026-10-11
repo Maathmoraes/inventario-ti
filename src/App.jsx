@@ -89,10 +89,104 @@ function TooltipLocalizacaoTipo({ active, payload, label }) {
 
 function App() {
   const [equipamentos, setEquipamentos] = useState(() => {
-    const equipamentosSalvos = localStorage.getItem("equipamentos");
+  const equipamentosSalvos = localStorage.getItem("equipamentos");
+  return equipamentosSalvos ? JSON.parse(equipamentosSalvos) : [];
+});
 
-    return equipamentosSalvos ? JSON.parse(equipamentosSalvos) : [];
-  });
+const [anexos, setAnexos] = useState([]);
+const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
+
+  useEffect(() => {
+  Promise.all([
+    fetch("http://127.0.0.1:8000/equipamentos"),
+    fetch("http://127.0.0.1:8000/historico")
+  ])
+    .then(async ([respostaEquipamentos, respostaHistorico]) => {
+      const dadosEquipamentos =
+        await respostaEquipamentos.json();
+
+      const dadosHistorico =
+        await respostaHistorico.json();
+
+      return {
+        dadosEquipamentos,
+        dadosHistorico
+      };
+    })
+    .then(({ dadosEquipamentos, dadosHistorico }) => {
+      const equipamentosFormatados =
+        dadosEquipamentos.map((equipamento) => {
+
+          const historicoEquipamento =
+            dadosHistorico
+              .filter(
+                (evento) =>
+                  evento.equipamento_id === equipamento.id
+              )
+              .map((evento) => ({
+
+                id: evento.id,
+                tipo: evento.tipo || "",
+                descricao: evento.descricao || "",
+                data: evento.data || "",
+                situacaoManutencao:
+                  evento.situacao_manutencao || "",
+                motivo: evento.motivo || "",
+                observacao: evento.observacao || "",
+                dataConclusao:
+                  evento.data_conclusao || "",
+                localizacao:
+                  evento.localizacao || "",
+                responsavel:
+                  evento.responsavel || "",
+                status:
+                  evento.status || "",
+                anexoId:
+                  evento.anexo_id || null
+
+              }));
+
+          return {
+            id: equipamento.id,
+            tipo: equipamento.tipo || "",
+            fabricante: equipamento.fabricante || "",
+            modelo: equipamento.modelo || "",
+            marca: equipamento.marca || "",
+            numeroSerie:
+              equipamento.numero_serie || "",
+            dataFabricacao:
+              equipamento.data_fabricacao || "",
+            status: equipamento.status || "",
+            responsavel:
+              equipamento.responsavel || "",
+            setor:
+              equipamento.setor || "",
+            localizacao:
+              equipamento.localizacao || "",
+
+            historico: historicoEquipamento
+          };
+        });
+
+      setEquipamentos(equipamentosFormatados);
+
+      console.log(
+        "Equipamentos carregados da API:",
+        equipamentosFormatados
+      );
+
+      console.log(
+        "Histórico carregado da API:",
+        dadosHistorico
+      );
+    })
+    .catch((erro) => {
+      console.error(
+        "Erro ao conectar com a API:",
+        erro
+      );
+    });
+}, []);
 
   const [equipamentoEditando, setEquipamentoEditando] = useState(null);
   const [formularioAberto, setFormularioAberto] = useState(false);
@@ -122,15 +216,29 @@ const [senhaUsuario, setSenhaUsuario] = useState("");
 const [perfilUsuario, setPerfilUsuario] = useState("");
 const [emailLogin, setEmailLogin] = useState("");
 const [senhaLogin, setSenhaLogin] = useState("");
+const [mostrarSenha, setMostrarSenha] = useState(false);
 const [usuarioEditando, setUsuarioEditando] = useState(null);
 const [usuarios, setUsuarios] = useState([]);
   const [historicoAberto, setHistoricoAberto] = useState(false);
-  const [relatoriosAberto, setRelatoriosAberto] = useState(false);
-  const [relatorioGeralAberto, setRelatorioGeralAberto] = useState(false);
-  const [relatorioManutencaoAberto, setRelatorioManutencaoAberto] = useState(false);
-  const [relatorioMovimentacaoAberto, setRelatorioMovimentacaoAberto] = useState(false);
-  const [filtroRelatorioManutencaoSituacao, setFiltroRelatorioManutencaoSituacao] = useState("");
-  const [relatorioHistoricoAberto, setRelatorioHistoricoAberto] = useState(false);
+const [relatoriosAberto, setRelatoriosAberto] = useState(false);
+const [relatorioGeralAberto, setRelatorioGeralAberto] = useState(false);
+const [relatorioManutencaoAberto, setRelatorioManutencaoAberto] = useState(false);
+const [relatorioMovimentacaoAberto, setRelatorioMovimentacaoAberto] = useState(false);
+const [filtroRelatorioManutencaoSituacao, setFiltroRelatorioManutencaoSituacao] = useState("");
+const [relatorioHistoricoAberto, setRelatorioHistoricoAberto] = useState(false);
+
+function fecharTelas() {
+  setDashboardAberto(false);
+  setGraficosAberto(false);
+  setCadastroAberto(false);
+  setUsuariosAberto(false);
+  setHistoricoAberto(false);
+  setRelatoriosAberto(false);
+  setRelatorioGeralAberto(false);
+  setRelatorioManutencaoAberto(false);
+  setRelatorioMovimentacaoAberto(false);
+  setRelatorioHistoricoAberto(false);
+}
   // Referências da rolagem horizontal do relatório de histórico
 const tabelaHistoricoRef = useRef(null);
 const barraHistoricoRef = useRef(null);
@@ -541,50 +649,216 @@ const equipamentosPorLocalizacaoETipo = [
   },
 ];
 
-  function editarEquipamento(equipamento) {
-    const indexOriginal = equipamentos.findIndex(
-      (item) => item === equipamento
+  async function carregarAnexos(equipamentoId) {
+  try {
+    const resposta = await fetch(
+      `http://127.0.0.1:8000/equipamentos/${equipamentoId}/anexos`
     );
 
-    setEquipamentoEditando(indexOriginal);
-    setFormularioAberto(true);
-setTipo(equipamento.tipo);
-setFabricante(equipamento.fabricante);
-setModelo(equipamento.modelo);
-setMarca(equipamento.marca);
-setNumeroSerie(equipamento.numeroSerie);
-setDataFabricacao(equipamento.dataFabricacao || "");
-setStatus(equipamento.status);
-setResponsavel(equipamento.responsavel || "");
-setSetor(equipamento.setor || "");
-setLocalizacao(equipamento.localizacao || "");
-setMotivoManutencao("");
-setObservacaoManutencao("");
-    setMotivoManutencao("");
-    setObservacaoManutencao("");
+    if (!resposta.ok) {
+      throw new Error("Erro ao carregar anexos.");
+    }
+
+    const dados = await resposta.json();
+
+    setAnexos(dados);
+
+    console.log("Anexos carregados:", dados);
+  } catch (erro) {
+    console.error("Erro ao carregar anexos:", erro);
+    setAnexos([]);
+  }
+}
+
+async function enviarAnexo(equipamentoId, arquivo) {
+  if (!arquivo) {
+    return;
   }
 
- function excluirEquipamento(equipamento) {
+  try {
+    const formulario = new FormData();
+
+    formulario.append("arquivo", arquivo);
+
+    const resposta = await fetch(
+      `http://127.0.0.1:8000/equipamentos/${equipamentoId}/anexos`,
+      {
+        method: "POST",
+        body: formulario,
+      }
+    );
+
+    if (!resposta.ok) {
+      throw new Error("Erro ao enviar o anexo.");
+    }
+
+    const dados = await resposta.json();
+
+if (dados.erro) {
+  alert(dados.erro);
+  return;
+}
+
+console.log("Anexo enviado com sucesso:", dados);
+
+await carregarAnexos(equipamentoId);
+
+    const respostaHistorico = await fetch(
+      "http://127.0.0.1:8000/historico"
+    );
+
+    if (!respostaHistorico.ok) {
+      throw new Error(
+        "Erro ao atualizar o histórico."
+      );
+    }
+
+    const dadosHistorico =
+  await respostaHistorico.json();
+
+const historicoAtualizado =
+  dadosHistorico
+    .filter(
+      (evento) =>
+        evento.equipamento_id === equipamentoId
+    )
+    .map((evento) => ({
+      id: evento.id,
+      tipo: evento.tipo || "",
+      descricao: evento.descricao || "",
+      data: evento.data || "",
+      situacaoManutencao:
+        evento.situacao_manutencao || "",
+      motivo: evento.motivo || "",
+      observacao: evento.observacao || "",
+      dataConclusao:
+        evento.data_conclusao || "",
+      localizacao:
+        evento.localizacao || "",
+      responsavel:
+        evento.responsavel || "",
+      status:
+        evento.status || "",
+      anexoId:
+        evento.anexo_id || null
+    }));
+
+    setEquipamentos(
+      (equipamentosAtuais) =>
+        equipamentosAtuais.map((equipamento) =>
+          equipamento.id === equipamentoId
+            ? {
+                ...equipamento,
+                historico: historicoAtualizado
+              }
+            : equipamento
+        )
+    );
+
+    setArquivoSelecionado(null);
+
+    alert("Arquivo anexado com sucesso!");
+  } catch (erro) {
+    console.error(
+      "Erro ao enviar anexo:",
+      erro
+    );
+
+    alert("Não foi possível enviar o arquivo.");
+  }
+}
+
+async function carregarAnexos(equipamentoId) {
+  try {
+    const resposta = await fetch(
+      `http://127.0.0.1:8000/equipamentos/${equipamentoId}/anexos`
+    );
+
+    if (!resposta.ok) {
+      throw new Error("Erro ao carregar anexos.");
+    }
+
+    const dados = await resposta.json();
+
+    setAnexos(dados);
+
+    console.log("Anexos carregados:", dados);
+  } catch (erro) {
+    console.error("Erro ao carregar anexos:", erro);
+    setAnexos([]);
+  }
+}
+
+function editarEquipamento(equipamento) {
   const indexOriginal = equipamentos.findIndex(
     (item) => item === equipamento
   );
 
-  const equipamentosAtualizados = equipamentos.filter(
-    (_, index) => index !== indexOriginal
-  );
+  setEquipamentoEditando(indexOriginal);
+  setFormularioAberto(true);
+  setTipo(equipamento.tipo);
+  setFabricante(equipamento.fabricante);
+  setModelo(equipamento.modelo);
+  setMarca(equipamento.marca);
+  setNumeroSerie(equipamento.numeroSerie);
+  setDataFabricacao(equipamento.dataFabricacao || "");
+  setStatus(equipamento.status);
+  setResponsavel(equipamento.responsavel || "");
+  setSetor(equipamento.setor || "");
+  setLocalizacao(equipamento.localizacao || "");
+  setMotivoManutencao("");
+  setObservacaoManutencao("");
+  setMotivoManutencao("");
+  setObservacaoManutencao("");
 
-  setEquipamentos(equipamentosAtualizados);
-
-  localStorage.setItem(
-    "equipamentos",
-    JSON.stringify(equipamentosAtualizados)
-  );
+  carregarAnexos(equipamento.id);
 }
 
- function salvarEquipamento(event) {
+ async function excluirEquipamento(equipamento) {
+  try {
+    const resposta = await fetch(
+      `http://127.0.0.1:8000/equipamentos/${equipamento.id}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    if (!resposta.ok) {
+      console.error("Erro ao excluir equipamento na API.");
+      alert("Não foi possível excluir o equipamento.");
+      return;
+    }
+
+    const equipamentosAtualizados = equipamentos.filter(
+      (item) => item.id !== equipamento.id
+    );
+
+    setEquipamentos(equipamentosAtualizados);
+
+    localStorage.setItem(
+      "equipamentos",
+      JSON.stringify(equipamentosAtualizados)
+    );
+
+    console.log(
+      "Equipamento movido para a lixeira:",
+      equipamento
+    );
+  } catch (erro) {
+    console.error("Erro ao conectar com a API:", erro);
+    alert("Não foi possível conectar com a API.");
+  }
+}
+
+ async function salvarEquipamento(event) {
   event.preventDefault();
 
- const novoEquipamento = {
+  const novoEquipamento = {
+  id:
+    equipamentoEditando !== null
+      ? equipamentos[equipamentoEditando].id
+      : undefined,
+
   tipo,
   fabricante,
   modelo,
@@ -597,152 +871,230 @@ setObservacaoManutencao("");
   localizacao,
 
   historico:
-  equipamentoEditando !== null
-    ? equipamentos[equipamentoEditando].historico || []
-    : [
-        {
-          tipo: "Cadastro",
-          descricao: "Equipamento cadastrado no inventário",
-          data: new Date().toISOString(),
-          localizacao,
-          responsavel,
-          status,
-          observacao: ""
-        }
-      ]
+    equipamentoEditando !== null
+      ? equipamentos[equipamentoEditando].historico || []
+      : [
+          {
+            tipo: "Cadastro",
+            descricao: "Equipamento cadastrado no inventário",
+            data: new Date().toISOString(),
+            localizacao,
+            responsavel,
+            status,
+            observacao: ""
+          }
+        ]
 };
+
   let equipamentosAtualizados;
 
-if (equipamentoEditando !== null) {
-  equipamentosAtualizados = [...equipamentos];
+  if (equipamentoEditando !== null) {
+    equipamentosAtualizados = [...equipamentos];
 
-  const equipamentoAnterior = equipamentos[equipamentoEditando];
+    const equipamentoAnterior = equipamentos[equipamentoEditando];
 
-const alteracoes = [];
+    const alteracoes = [];
 
-const entrouEmManutencao =
-  equipamentoAnterior.status !== "Manutenção" &&
-  status === "Manutenção";
+    const entrouEmManutencao =
+      equipamentoAnterior.status !== "Manutenção" &&
+      status === "Manutenção";
 
-const concluiuManutencao =
-  equipamentoAnterior.status === "Manutenção" &&
-  status === "Disponível" &&
-  normalizarTexto(observacaoManutencao).includes(
-    "manutencao concluida"
-  );
+    const concluiuManutencao =
+      equipamentoAnterior.status === "Manutenção" &&
+      status === "Disponível" &&
+      normalizarTexto(observacaoManutencao).includes(
+        "manutencao concluida"
+      );
 
-if (
-  equipamentoAnterior.status !== status &&
-  !entrouEmManutencao &&
-  !concluiuManutencao
-) {
-  alteracoes.push(
-    `Status alterado: ${equipamentoAnterior.status} → ${status}`
-  );
-}
-
-const movimentacoes = [];
-
-if (equipamentoAnterior.localizacao !== localizacao) {
-  movimentacoes.push(
-    `Localização alterada: ${equipamentoAnterior.localizacao} → ${localizacao}`
-  );
-}
-
-if (equipamentoAnterior.setor !== setor) {
-  movimentacoes.push(
-    `Setor alterado: ${equipamentoAnterior.setor} → ${setor}`
-  );
-}
-
-if (equipamentoAnterior.responsavel !== responsavel) {
-  movimentacoes.push(
-    `Responsável alterado: ${equipamentoAnterior.responsavel || "-"} → ${responsavel || "-"}`
-  );
-}
-
-const historicoAtualizado = [
-  ...(equipamentoAnterior.historico || [])
-];
-
-if (movimentacoes.length > 0) {
-  historicoAtualizado.push({
-    tipo: "Movimentação",
-    descricao: movimentacoes.join("\n"),
-    data: new Date().toISOString(),
-    origem: equipamentoAnterior.localizacao,
-    destino: localizacao,
-    responsavelAnterior: equipamentoAnterior.responsavel,
-    responsavelNovo: responsavel,
-    setorAnterior: equipamentoAnterior.setor,
-    setorNovo: setor,
-    observacao: ""
-  });
-}
-
-if (entrouEmManutencao) {
-  historicoAtualizado.push({
-    tipo: "Manutenção",
-    descricao: "Equipamento entrou em manutenção",
-    data: new Date().toISOString(),
-    situacaoManutencao: "Em andamento",
-    motivo: motivoManutencao,
-    observacao: observacaoManutencao
-  });
-}
-
-if (concluiuManutencao) {
-  let manutencaoAtualizada = false;
-
-  for (let i = historicoAtualizado.length - 1; i >= 0; i--) {
     if (
-      !manutencaoAtualizada &&
-      historicoAtualizado[i].tipo === "Manutenção" &&
-      historicoAtualizado[i].situacaoManutencao === "Em andamento"
+      equipamentoAnterior.status !== status &&
+      !entrouEmManutencao &&
+      !concluiuManutencao
     ) {
-      historicoAtualizado[i] = {
-        ...historicoAtualizado[i],
-        situacaoManutencao: "Concluída",
-        dataConclusao: new Date().toISOString(),
-        observacao: observacaoManutencao
-      };
-
-      manutencaoAtualizada = true;
+      alteracoes.push(
+        `Status alterado: ${equipamentoAnterior.status} → ${status}`
+      );
     }
-  }
-}
 
-if (alteracoes.length > 0) {
-  historicoAtualizado.push({
-    tipo: "Alteração",
-    descricao: alteracoes.join("\n"),
-    data: new Date().toISOString(),
-    observacao: ""
-  });
-}
+    const movimentacoes = [];
 
-if (
-  movimentacoes.length === 0 &&
-  alteracoes.length === 0 &&
-  !entrouEmManutencao &&
-  !concluiuManutencao
-) {
-  historicoAtualizado.push({
-    tipo: "Alteração",
-    descricao: "Equipamento atualizado",
-    data: new Date().toISOString(),
-    observacao: ""
-  });
-}
-equipamentosAtualizados[equipamentoEditando] = {
+    if (equipamentoAnterior.localizacao !== localizacao) {
+      movimentacoes.push(
+        `Localização alterada: ${equipamentoAnterior.localizacao} → ${localizacao}`
+      );
+    }
+
+    if (equipamentoAnterior.setor !== setor) {
+      movimentacoes.push(
+        `Setor alterado: ${equipamentoAnterior.setor} → ${setor}`
+      );
+    }
+
+    if (equipamentoAnterior.responsavel !== responsavel) {
+      movimentacoes.push(
+        `Responsável alterado: ${equipamentoAnterior.responsavel || "-"} → ${responsavel || "-"}`
+      );
+    }
+
+    const historicoAtualizado = [
+      ...(equipamentoAnterior.historico || [])
+    ];
+
+    if (movimentacoes.length > 0) {
+      historicoAtualizado.push({
+        tipo: "Movimentação",
+        descricao: movimentacoes.join("\n"),
+        data: new Date().toISOString(),
+        origem: equipamentoAnterior.localizacao,
+        destino: localizacao,
+        responsavelAnterior: equipamentoAnterior.responsavel,
+        responsavelNovo: responsavel,
+        setorAnterior: equipamentoAnterior.setor,
+        setorNovo: setor,
+        observacao: ""
+      });
+    }
+
+    if (entrouEmManutencao) {
+      historicoAtualizado.push({
+        tipo: "Manutenção",
+        descricao: "Equipamento entrou em manutenção",
+        data: new Date().toISOString(),
+        situacaoManutencao: "Em andamento",
+        motivo: motivoManutencao,
+        observacao: observacaoManutencao
+      });
+    }
+
+    if (concluiuManutencao) {
+      let manutencaoAtualizada = false;
+
+      for (let i = historicoAtualizado.length - 1; i >= 0; i--) {
+        if (
+          !manutencaoAtualizada &&
+          historicoAtualizado[i].tipo === "Manutenção" &&
+          historicoAtualizado[i].situacaoManutencao === "Em andamento"
+        ) {
+          historicoAtualizado[i] = {
+            ...historicoAtualizado[i],
+            situacaoManutencao: "Concluída",
+            dataConclusao: new Date().toISOString(),
+            observacao: observacaoManutencao
+          };
+
+          manutencaoAtualizada = true;
+        }
+      }
+    }
+
+    if (alteracoes.length > 0) {
+      historicoAtualizado.push({
+        tipo: "Alteração",
+        descricao: alteracoes.join("\n"),
+        data: new Date().toISOString(),
+        observacao: ""
+      });
+    }
+
+    if (
+      movimentacoes.length === 0 &&
+      alteracoes.length === 0 &&
+      !entrouEmManutencao &&
+      !concluiuManutencao
+    ) {
+      historicoAtualizado.push({
+        tipo: "Alteração",
+        descricao: "Equipamento atualizado",
+        data: new Date().toISOString(),
+        observacao: ""
+      });
+    }
+
+    const equipamentoAtualizado = {
   ...novoEquipamento,
   historico: historicoAtualizado
 };
 
-setEquipamentoEditando(null);
-} else {
-  equipamentosAtualizados = [...equipamentos, novoEquipamento];
+equipamentosAtualizados[equipamentoEditando] =
+  equipamentoAtualizado;
+
+const historicoAnterior =
+  equipamentoAnterior.historico || [];
+
+const historicoNovo =
+  historicoAtualizado.slice(historicoAnterior.length);
+
+const equipamentoParaAPI = {
+  ...equipamentoAtualizado,
+  historico: historicoNovo
+};
+
+const resposta = await fetch(
+  `http://127.0.0.1:8000/equipamentos/${equipamentoAtualizado.id}`,
+  {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(equipamentoParaAPI)
+  }
+);
+
+if (!resposta.ok) {
+  throw new Error("Erro ao atualizar equipamento na API.");
 }
+
+console.log("Equipamento atualizado na API.");
+
+setEquipamentos(equipamentosAtualizados);
+
+setEquipamentoEditando(null);
+  } else {
+    const resposta = await fetch(
+      "http://127.0.0.1:8000/equipamentos",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(novoEquipamento)
+      }
+    );
+
+    if (!resposta.ok) {
+      console.error(
+        "Erro ao cadastrar equipamento na API."
+      );
+      return;
+    }
+
+    const dados = await resposta.json();
+
+    const equipamentoSalvo = {
+      id: dados.equipamento.id,
+      tipo: dados.equipamento.tipo || "",
+      fabricante: dados.equipamento.fabricante || "",
+      modelo: dados.equipamento.modelo || "",
+      marca: dados.equipamento.marca || "",
+      numeroSerie: dados.equipamento.numero_serie || "",
+      dataFabricacao: dados.equipamento.data_fabricacao || "",
+      status: dados.equipamento.status || "",
+      responsavel: dados.equipamento.responsavel || "",
+      setor: dados.equipamento.setor || "",
+      localizacao: dados.equipamento.localizacao || "",
+      historico: novoEquipamento.historico
+    };
+
+    equipamentosAtualizados = [
+      ...equipamentos,
+      equipamentoSalvo
+    ];
+
+    console.log(
+      "Equipamento cadastrado pela API:",
+      equipamentoSalvo
+    );
+  }
 
   setEquipamentos(equipamentosAtualizados);
 
@@ -856,17 +1208,31 @@ setObservacaoManutencao("");
   }
 
   function filtrarPorStatus(statusSelecionado) {
+
+  setFormularioAberto(false);
+
   setBusca("");
+
   setFiltroTipo("");
+
   setFiltroStatus(statusSelecionado);
+
   setMostrarEquipamentos(true);
+
 }
 
 function mostrarTodosEquipamentos() {
+
+  setFormularioAberto(false);
+
   setBusca("");
+
   setFiltroTipo("");
+
   setFiltroStatus("");
+
   setMostrarEquipamentos(true);
+
 }
 
 
@@ -1049,9 +1415,9 @@ if (!logado) {
 
         <h1>Inventário TI</h1>
 
-        <p>Controle de equipamentos de TI</p>
+<p>Controle de equipamentos de TI</p>
 
-        <form
+<form
   onSubmit={(event) => {
     event.preventDefault();
 
@@ -1092,7 +1458,35 @@ setLogado(true);
   }}
 >
   <div className="campo-login">
-    <label>E-mail corporativo</label>
+  <label>E-mail corporativo</label>
+
+  <div className="campo-login-input">
+    <span className="icone-login">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M4 6.5L12 12.5L20 6.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <rect
+          x="3"
+          y="5"
+          width="18"
+          height="14"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+      </svg>
+    </span>
+
     <input
       type="email"
       placeholder="Digite seu e-mail"
@@ -1100,16 +1494,126 @@ setLogado(true);
       onChange={(event) => setEmailLogin(event.target.value)}
     />
   </div>
+</div>
 
-  <div className="campo-login">
-    <label>Senha</label>
+<div className="campo-login">
+  <label>Senha</label>
+
+  <div className="campo-login-input">
+
+    <span className="icone-login">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="5"
+          y="10"
+          width="14"
+          height="10"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+
+        <path
+          d="M8 10V7.5C8 5.57 9.79 4 12 4C14.21 4 16 5.57 16 7.5V10"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+
+        <circle
+          cx="12"
+          cy="15"
+          r="1"
+          fill="currentColor"
+        />
+      </svg>
+    </span>
+
     <input
-      type="password"
+      type={mostrarSenha ? "text" : "password"}
       placeholder="Digite sua senha"
       value={senhaLogin}
       onChange={(event) => setSenhaLogin(event.target.value)}
     />
+
+    <button
+  type="button"
+  className="botao-mostrar-senha"
+  onClick={() => setMostrarSenha(!mostrarSenha)}
+  aria-label={
+    mostrarSenha
+      ? "Ocultar senha"
+      : "Mostrar senha"
+  }
+>
+  {mostrarSenha ? (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M2.5 12C2.5 12 6 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 18 18.5 12 18.5C6 18.5 2.5 12 2.5 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <circle
+        cx="12"
+        cy="12"
+        r="2.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  ) : (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M3 3L21 21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+
+      <path
+        d="M10.6 5.7C11.05 5.57 11.52 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 20.05 14.7 17.55 16.55"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <path
+        d="M6.45 7.45C4.05 9.25 2.5 12 2.5 12C2.5 12 6 18.5 12 18.5C13.15 18.5 14.2 18.25 15.15 17.85"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <path
+        d="M9.9 9.9C9.35 10.45 9 11.2 9 12C9 13.65 10.35 15 12 15C12.8 15 13.55 14.65 14.1 14.1"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )}
+</button>
+
   </div>
+</div>
 
   <button
     className="botao-login"
@@ -1174,177 +1678,127 @@ return (
         </button>
       </div>
 
- <button
-  className="item-menu"
-  type="button"
-  onClick={() => {
-    setDashboardAberto(false);
-    setGraficosAberto(false);
-    setHistoricoAberto(false);
-    setRelatoriosAberto(false);
-    setRelatorioGeralAberto(false);
-    setRelatorioManutencaoAberto(false);
-    setRelatorioMovimentacaoAberto(false);
-    setRelatorioHistoricoAberto(false);
-    setMenuAberto(false);
-  }}
->
-  <span>-</span>
-  <span>Início</span>
-</button>
+      <button
+        className="item-menu"
+        type="button"
+        onClick={() => {
+          fecharTelas();
+          setMenuAberto(false);
+        }}
+      >
+        <span>-</span>
+        <span>Início</span>
+      </button>
 
-<button
-  className="item-menu"
-  type="button"
-  onClick={() => {
-    setDashboardAberto(true);
-    setGraficosAberto(false);
-    setHistoricoAberto(false);
-    setRelatoriosAberto(false);
-    setRelatorioGeralAberto(false);
-    setRelatorioManutencaoAberto(false);
-    setRelatorioMovimentacaoAberto(false);
-    setRelatorioHistoricoAberto(false);
-    setMenuAberto(false);
-  }}
->
-  <span>-</span>
-  <span>Dashboard</span>
-</button>
+      <button
+        className="item-menu"
+        type="button"
+        onClick={() => {
+          fecharTelas();
+          setDashboardAberto(true);
+          setMenuAberto(false);
+        }}
+      >
+        <span>-</span>
+        <span>Dashboard</span>
+      </button>
 
-<button
-  className="item-menu"
-  type="button"
-  onClick={() => {
-    setGraficosAberto(true);
-    setDashboardAberto(false);
-    setHistoricoAberto(false);
-    setRelatoriosAberto(false);
-    setRelatorioGeralAberto(false);
-    setRelatorioManutencaoAberto(false);
-    setRelatorioMovimentacaoAberto(false);
-    setRelatorioHistoricoAberto(false);
-    setMenuAberto(false);
-  }}
->
-  <span>-</span>
-  <span>Gráficos</span>
-</button>
+      <button
+        className="item-menu"
+        type="button"
+        onClick={() => {
+          fecharTelas();
+          setGraficosAberto(true);
+          setMenuAberto(false);
+        }}
+      >
+        <span>-</span>
+        <span>Gráficos</span>
+      </button>
 
-{usuarioLogado?.perfil === "Administrador" && (
-  <button
-    className="item-menu"
-    type="button"
-    onClick={() => {
-      setCadastroAberto(true);
-      setUsuariosAberto(false);
-      setDashboardAberto(false);
-      setGraficosAberto(false);
-      setHistoricoAberto(false);
-      setRelatoriosAberto(false);
-      setRelatorioGeralAberto(false);
-      setRelatorioManutencaoAberto(false);
-      setRelatorioMovimentacaoAberto(false);
-      setRelatorioHistoricoAberto(false);
-      setMenuAberto(false);
-    }}
-  >
-    <span>-</span>
-    <span>Cadastro</span>
-  </button>
-)}
+      {usuarioLogado?.perfil === "Administrador" && (
+        <button
+          className="item-menu"
+          type="button"
+          onClick={() => {
+            fecharTelas();
+            setCadastroAberto(true);
+            setMenuAberto(false);
+          }}
+        >
+          <span>-</span>
+          <span>Cadastro</span>
+        </button>
+      )}
 
-{usuarioLogado?.perfil === "Administrador" && (
-  <button 
-    className="item-menu" 
-    type="button" 
-    onClick={() => { 
-      if (dashboardAberto) { 
-        setTelaAnterior("dashboard"); 
-      } else if (graficosAberto) { 
-        setTelaAnterior("graficos"); 
-      } else if (cadastroAberto) { 
-        setTelaAnterior("cadastro"); 
-      } else if (historicoAberto) { 
-        setTelaAnterior("historico"); 
-      } else if (relatoriosAberto) { 
-        setTelaAnterior("relatorios"); 
-      } else { 
-        setTelaAnterior("inicio"); 
-      } 
+      {usuarioLogado?.perfil === "Administrador" && (
+        <button
+          className="item-menu"
+          type="button"
+          onClick={() => {
+            if (dashboardAberto) {
+              setTelaAnterior("dashboard");
+            } else if (graficosAberto) {
+              setTelaAnterior("graficos");
+            } else if (cadastroAberto) {
+              setTelaAnterior("cadastro");
+            } else if (historicoAberto) {
+              setTelaAnterior("historico");
+            } else if (relatoriosAberto) {
+              setTelaAnterior("relatorios");
+            } else {
+              setTelaAnterior("inicio");
+            }
 
-      setUsuariosAberto(true); 
-      setCadastroAberto(false); 
-      setDashboardAberto(false); 
-      setGraficosAberto(false); 
-      setHistoricoAberto(false); 
-      setRelatoriosAberto(false); 
-      setRelatorioGeralAberto(false); 
-      setRelatorioManutencaoAberto(false); 
-      setRelatorioMovimentacaoAberto(false); 
-      setRelatorioHistoricoAberto(false); 
-      setMenuAberto(false); 
-    }} 
-  > 
-    <span>-</span> 
-    <span>Usuários</span> 
-  </button>
-)}
+            fecharTelas();
+            setUsuariosAberto(true);
+            setMenuAberto(false);
+          }}
+        >
+          <span>-</span>
+          <span>Usuários</span>
+        </button>
+      )}
 
-<button
-  className="item-menu"
-  type="button"
-  onClick={() => {
-    setHistoricoAberto(true);
-    setUsuariosAberto(false);
-    setDashboardAberto(false);
-    setGraficosAberto(false);
-    setRelatoriosAberto(false);
-    setRelatorioGeralAberto(false);
-    setRelatorioManutencaoAberto(false);
-    setRelatorioMovimentacaoAberto(false);
-    setRelatorioHistoricoAberto(false);
-    setMenuAberto(false);
-  }}
->
-  <span>-</span>
-  <span>Histórico de equipamentos</span>
-</button>
+      <button
+        className="item-menu"
+        type="button"
+        onClick={() => {
+          fecharTelas();
+          setHistoricoAberto(true);
+          setMenuAberto(false);
+        }}
+      >
+        <span>-</span>
+        <span>Histórico de equipamentos</span>
+      </button>
 
-    <button
-  className="item-menu"
-  type="button"
-  onClick={() => {
-    setRelatoriosAberto(true);
-    setDashboardAberto(false);
-    setGraficosAberto(false);
-    setHistoricoAberto(false);
-    setUsuariosAberto(false);
-    setRelatorioGeralAberto(false);
-    setRelatorioManutencaoAberto(false);
-    setRelatorioMovimentacaoAberto(false);
-    setRelatorioHistoricoAberto(false);
-    setMenuAberto(false);
-  }}
->
-  <span>-</span>
-  <span>Relatórios</span>
-</button>
+      <button
+        className="item-menu"
+        type="button"
+        onClick={() => {
+          fecharTelas();
+          setRelatoriosAberto(true);
+          setMenuAberto(false);
+        }}
+      >
+        <span>-</span>
+        <span>Relatórios</span>
+      </button>
 
-<button
-  onClick={() => {
-    localStorage.removeItem("usuarioLogado");
+      <button
+        onClick={() => {
+          localStorage.removeItem("usuarioLogado");
 
-    setUsuarioLogado(null);
-    setEmailLogin("");
-    setSenhaLogin("");
-    setLogado(false);
-    setMenuAberto(false);
-  }}
->
-  Sair
-</button>
-
+          setUsuarioLogado(null);
+          setEmailLogin("");
+          setSenhaLogin("");
+          setLogado(false);
+          setMenuAberto(false);
+        }}
+      >
+        Sair
+      </button>
     </aside>
   </>
 )}
@@ -1798,7 +2252,54 @@ return (
   </span>
 )}
 
-<p style={{ whiteSpace: "pre-line" }}>{evento.descricao}</p>
+<p style={{ whiteSpace: "pre-line" }}>
+  {evento.descricao}
+</p>
+
+{evento.tipo === "Anexo" && evento.anexoId && (
+  <button
+    type="button"
+    onClick={async () => {
+      try {
+        const resposta = await fetch(
+          `http://127.0.0.1:8000/anexos/${evento.anexoId}`
+        );
+
+        if (!resposta.ok) {
+          throw new Error(
+            "Não foi possível abrir o anexo."
+          );
+        }
+
+        const blob = await resposta.blob();
+
+        const url =
+          URL.createObjectURL(blob);
+
+        window.open(url, "_blank");
+      } catch (erro) {
+        console.error(
+          "Erro ao abrir anexo:",
+          erro
+        );
+
+        alert(
+          "Não foi possível abrir o anexo."
+        );
+      }
+    }}
+    title="Abrir anexo"
+    style={{
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontSize: "20px",
+      padding: "4px"
+    }}
+  >
+    📎
+  </button>
+)}
 
 {evento.motivo && (
   <span>
@@ -4127,11 +4628,205 @@ return true;
                 />
               </label>
 
-              <button className="botao-salvar" type="submit">
-                {equipamentoEditando !== null
-                ? "Atualizar equipamento"
-              : "Adicionar equipamento"}
-              </button>
+
+<div className="area-anexos">
+  <h3>Anexos do equipamento</h3>
+
+  {equipamentoEditando !== null && (
+    <>
+      {anexos.length === 0 ? (
+        <p>Nenhum anexo cadastrado.</p>
+      ) : (
+        <div className="lista-anexos">
+          {anexos.map((anexo) => (
+            <div className="item-anexo" key={anexo.id}>
+  <span>
+    📎 {anexo.nome_arquivo}
+  </span>
+
+  <button
+    type="button"
+    className="botao-anexo"
+    onClick={async () => {
+      try {
+        const resposta = await fetch(
+          `http://127.0.0.1:8000/anexos/${anexo.id}`
+        );
+
+        if (!resposta.ok) {
+          throw new Error("Não foi possível abrir o arquivo.");
+        }
+
+        const blob = await resposta.blob();
+
+        const url = URL.createObjectURL(blob);
+
+        window.open(url, "_blank");
+
+      } catch (erro) {
+        console.error(
+          "Erro ao abrir arquivo:",
+          erro
+        );
+
+        alert("Não foi possível abrir o arquivo.");
+      }
+    }}
+  >
+    👁️ Abrir arquivo
+  </button>
+
+  <button
+    type="button"
+    className="botao-anexo"
+    onClick={async () => {
+      const confirmar = window.confirm(
+        "Tem certeza que deseja excluir este arquivo?"
+      );
+
+      if (!confirmar) {
+        return;
+      }
+
+      try {
+        const resposta = await fetch(
+          `http://127.0.0.1:8000/anexos/${anexo.id}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || dados.erro) {
+          throw new Error(
+            dados.erro || "Não foi possível excluir o arquivo."
+          );
+        }
+
+        await carregarAnexos(
+          equipamentos[equipamentoEditando].id
+        );
+
+        const respostaHistorico = await fetch(
+          "http://127.0.0.1:8000/historico"
+        );
+
+        if (!respostaHistorico.ok) {
+          throw new Error(
+            "Erro ao atualizar o histórico."
+          );
+        }
+
+        const dadosHistorico =
+          await respostaHistorico.json();
+
+        const historicoAtualizado =
+          dadosHistorico
+            .filter(
+              (evento) =>
+                evento.equipamento_id ===
+                equipamentos[equipamentoEditando].id
+            )
+            .map((evento) => ({
+              id: evento.id,
+              tipo: evento.tipo || "",
+              descricao: evento.descricao || "",
+              data: evento.data || "",
+              situacaoManutencao:
+                evento.situacao_manutencao || "",
+              motivo: evento.motivo || "",
+              observacao: evento.observacao || "",
+              dataConclusao:
+                evento.data_conclusao || "",
+              localizacao:
+                evento.localizacao || "",
+              responsavel:
+                evento.responsavel || "",
+              status:
+                evento.status || "",
+              anexoId:
+                evento.anexo_id || null
+            }));
+
+        setEquipamentos(
+          (equipamentosAtuais) =>
+            equipamentosAtuais.map((equipamento) =>
+              equipamento.id ===
+              equipamentos[equipamentoEditando].id
+                ? {
+                    ...equipamento,
+                    historico: historicoAtualizado
+                  }
+                : equipamento
+            )
+        );
+
+        alert("Arquivo excluído com sucesso!");
+
+      } catch (erro) {
+        console.error(
+          "Erro ao excluir arquivo:",
+          erro
+        );
+
+        alert(
+          erro.message ||
+          "Não foi possível excluir o arquivo."
+        );
+      }
+    }}
+  >
+    🗑️ Excluir
+  </button>
+</div>
+          ))}
+        </div>
+      )}
+    </>
+  )}
+
+  <label className="botao-anexar">
+    📎 Anexar arquivo
+
+    <input
+      type="file"
+      onChange={async (evento) => {
+        const arquivo = evento.target.files[0];
+
+        if (!arquivo) {
+          return;
+        }
+
+        setArquivoSelecionado(arquivo);
+
+        if (equipamentoEditando !== null) {
+          const equipamento =
+            equipamentos[equipamentoEditando];
+
+          await enviarAnexo(
+            equipamento.id,
+            arquivo
+          );
+        }
+      }}
+      style={{ display: "none" }}
+    />
+  </label>
+
+  {arquivoSelecionado && (
+    <p>
+      Arquivo selecionado:{" "}
+      <strong>{arquivoSelecionado.name}</strong>
+    </p>
+  )}
+</div>
+
+<button className="botao-salvar" type="submit">
+  {equipamentoEditando !== null
+    ? "Atualizar equipamento"
+    : "Adicionar equipamento"}
+</button>
             
   </form>
 )}
