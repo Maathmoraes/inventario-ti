@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 
 import logoBBM from "./assets/logo-bbm.png";
+import loginBackground from "./assets/login-background.png";
 
 import "./App.css";
 

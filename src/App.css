@@ -912,6 +912,8 @@ backdrop-filter: blur(12px);
 
 .login-logo {
 
+  filter: brightness(1.7);
+
   width: 220px;
 
   height: auto;
@@ -938,39 +940,24 @@ backdrop-filter: blur(12px);
   box-sizing: border-box;
 
   background:
+  linear-gradient(
+    rgba(3, 7, 18, 0.75),
+    rgba(3, 7, 18, 0.75)
+  ),
+  url("./assets/login-background.png");
 
-    radial-gradient(
-      circle at center,
-      rgba(37, 99, 235, 0.25),
-      transparent 45%
-    ),
+background-size: cover;
 
-    radial-gradient(
-      circle at left center,
-      rgba(30, 64, 175, 0.18),
-      transparent 35%
-    ),
+background-position: center;
 
-    radial-gradient(
-      circle at right center,
-      rgba(59, 130, 246, 0.14),
-      transparent 35%
-    ),
-
-    linear-gradient(
-      135deg,
-      #030712,
-      #071424 30%,
-      #081a33 60%,
-      #030712
-    );
+background-repeat: no-repeat;
 }
 
 .login-container {
 
   width: 100%;
 
-  max-width: 500px;
+  max-width: 460px;
 
   padding: 55px 45px;
 
@@ -1182,7 +1169,7 @@ backdrop-filter: blur(12px);
 
   box-sizing: border-box;
 
-  padding: 18px 50px 18px 48px;
+  padding: 18px 32px 18px 38px;
 
   border: 1px solid rgba(59, 130, 246, 0.25);
 
@@ -1195,6 +1182,10 @@ backdrop-filter: blur(12px);
   color: #ffffff;
 
   font-size: 16px;
+
+  white-space: nowrap;
+
+  overflow-x: auto;
 
   box-shadow:
     inset 0 1px 2px rgba(0,0,0,0.35);
