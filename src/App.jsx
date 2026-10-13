@@ -197,6 +197,8 @@ const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
   const [cadastroAberto, setCadastroAberto] = useState(false);
   const [usuariosAberto, setUsuariosAberto] = useState(false);
   const [telaAnterior, setTelaAnterior] = useState("inicio");
+  const [mostrarRecuperacaoSenha, setMostrarRecuperacaoSenha] = useState(false);
+  const [emailEnviado, setEmailEnviado] = useState(false);
 
 const [logado, setLogado] = useState(() => {
   return localStorage.getItem("usuarioLogado") !== null;
@@ -215,12 +217,19 @@ const [setorUsuario, setSetorUsuario] = useState("");
 const [emailUsuario, setEmailUsuario] = useState("");
 const [senhaUsuario, setSenhaUsuario] = useState("");
 const [perfilUsuario, setPerfilUsuario] = useState("");
-const [emailLogin, setEmailLogin] = useState("");
-const [senhaLogin, setSenhaLogin] = useState("");
+const [emailLogin, setEmailLogin] = useState(
+  localStorage.getItem("emailSalvo") || ""
+);
+const [senhaLogin, setSenhaLogin] = useState(
+  localStorage.getItem("senhaSalva") || ""
+);
+const [lembrarDeMim, setLembrarDeMim] = useState(
+  localStorage.getItem("lembrarDeMim") === "true"
+);
 const [mostrarSenha, setMostrarSenha] = useState(false);
 const [usuarioEditando, setUsuarioEditando] = useState(null);
 const [usuarios, setUsuarios] = useState([]);
-  const [historicoAberto, setHistoricoAberto] = useState(false);
+const [historicoAberto, setHistoricoAberto] = useState(false);
 const [relatoriosAberto, setRelatoriosAberto] = useState(false);
 const [relatorioGeralAberto, setRelatorioGeralAberto] = useState(false);
 const [relatorioManutencaoAberto, setRelatorioManutencaoAberto] = useState(false);
@@ -1406,6 +1415,38 @@ useEffect(() => {
 if (!logado) {
   return (
     <div className="tela-login">
+
+<div className="topo-login">
+
+  <span>Segurança</span>
+
+  <span>|</span>
+
+  <span>Organização</span>
+
+  <span>|</span>
+
+  <span>Produtividade</span>
+
+</div>
+
+      <div className="login-texto">
+
+  <h2>
+    Tecnologia
+    <br />
+    bem gerida,
+    <br />
+    <span>resultados reais.</span>
+  </h2>
+
+  <p>
+    Controle, organize e acompanhe
+    todos os seus ativos de TI em
+    um só lugar.
+  </p>
+
+</div>
       <div className="login-container">
 
         <img
@@ -1416,7 +1457,7 @@ if (!logado) {
 
         <h1>Inventário TI</h1>
 
-<p>Controle de equipamentos de TI</p>
+<p>Gestão inteligente de ativos de TI</p>
 
 <form
   onSubmit={(event) => {
@@ -1454,6 +1495,16 @@ setRelatorioMovimentacaoAberto(false);
 setRelatorioHistoricoAberto(false);
 setCadastroAberto(false);
 setUsuariosAberto(false);
+
+if (lembrarDeMim) {
+  localStorage.setItem("emailSalvo", emailLogin);
+  localStorage.setItem("senhaSalva", senhaLogin);
+  localStorage.setItem("lembrarDeMim", "true");
+} else {
+  localStorage.removeItem("emailSalvo");
+  localStorage.removeItem("senhaSalva");
+  localStorage.removeItem("lembrarDeMim");
+}
 
 setLogado(true);
   }}
@@ -1616,6 +1667,34 @@ setLogado(true);
   </div>
 </div>
 
+<div className="opcoes-login">
+
+  <label className="lembrar-login">
+
+    <input
+  type="checkbox"
+  checked={lembrarDeMim}
+  onChange={(event) =>
+    setLembrarDeMim(event.target.checked)
+  }
+/>
+
+    <span translate="no">Lembrar de mim</span>
+
+  </label>
+
+  <a
+    className="esqueceu-senha"
+    onClick={() => {
+      setEmailEnviado(false);
+      setMostrarRecuperacaoSenha(true);
+    }}
+  >
+    Esqueceu sua senha?
+  </a>
+
+</div>
+
   <button
     className="botao-login"
     type="submit"
@@ -1625,8 +1704,316 @@ setLogado(true);
 </form>
 
       </div>
+
+      <div className="bloco-direita">
+
+  <span className="traco-direita"></span>
+
+  <p>
+    Ativos de TI
+    <br />
+    mais controle
+    <br />
+    para uma gestão
+    <br />
+    mais eficiente.
+  </p>
+
+</div>
+
+<div className="login-icones" translate="no">
+
+  <div className="item-icone-login">
+
+  <svg
+    className="icone-ativo-login"
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+    <rect
+      x="4"
+      y="5"
+      width="16"
+      height="11"
+      rx="1.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <path
+      d="M2 19H22"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+
+  </svg>
+
+  <span translate="no">NOTEBOOK</span>
+
+</div>
+
+  <div className="item-icone-login">
+
+  <svg
+    className="icone-ativo-login"
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+    <rect
+      x="4"
+      y="4"
+      width="16"
+      height="11"
+      rx="1.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <path
+      d="M9 20H15"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+
+    <path
+      d="M12 15V20"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+
+  </svg>
+
+  <span translate="no">DESKTOP</span>
+
+</div>
+
+<div className="item-icone-login">
+
+  <svg
+    className="icone-ativo-login"
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+    <rect
+      x="7"
+      y="2"
+      width="10"
+      height="20"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <line
+      x1="11"
+      y1="18"
+      x2="13"
+      y2="18"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+
+  </svg>
+
+  <span translate="no">CELULAR</span>
+
+</div>
+
+<div className="item-icone-login">
+
+  <svg
+    className="icone-ativo-login"
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+
+    <rect
+      x="5"
+      y="5"
+      width="5"
+      height="5"
+      rx="1"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <rect
+      x="14"
+      y="5"
+      width="5"
+      height="5"
+      rx="1"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <rect
+      x="5"
+      y="14"
+      width="5"
+      height="5"
+      rx="1"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+    <rect
+      x="14"
+      y="14"
+      width="5"
+      height="5"
+      rx="1"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+
+  </svg>
+
+  <span translate="no">OUTROS ATIVOS</span>
+
+</div>
+</div>
+
+<div className="rodape-esquerdo">
+
+  <svg
+    className="icone-protecao"
+    viewBox="0 0 24 24"
+    fill="none"
+  >
+    <path
+      d="M12 3L19 6V11C19 15.5 16.2 19.5 12 21C7.8 19.5 5 15.5 5 11V6L12 3Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+
+    <path
+      d="M9.5 12L11.3 13.8L14.8 10.3"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+  </svg>
+
+  <div className="texto-protecao">
+
+    <strong>Seus dados protegidos</strong>
+
+    <span>
+      Acesso seguro e criptografado
+    </span>
+
+  </div>
+
+</div>
+
+<div className="rodape-direito">
+
+  GESTÃO DE TI QUE IMPULSIONA O SEU NEGÓCIO
+
+</div>
+
+
+{mostrarRecuperacaoSenha && (
+
+  <div className="modal-recuperacao">
+
+    <div className="modal-recuperacao-card">
+
+   {!emailEnviado && (
+
+  <>
+
+    <h3>
+      Recuperar senha
+    </h3>
+
+    <p>
+      Informe seu e-mail corporativo para receber as instruções de redefinição de senha.
+    </p>
+
+    <input
+      className="input-recuperacao"
+      type="email"
+      placeholder="Digite seu e-mail corporativo"
+    />
+
+    <div className="acoes-modal">
+
+      <button
+  type="button"
+  className="fechar-modal"
+  onClick={() => {
+    setMostrarRecuperacaoSenha(false);
+    setEmailEnviado(false);
+  }}
+>
+  Cancelar
+</button>
+
+      <button
+        type="button"
+        className="enviar-modal"
+        onClick={() =>
+          setEmailEnviado(true)
+        }
+      >
+        Enviar
+      </button>
+
     </div>
-  );
+
+  </>
+
+)}
+
+{emailEnviado && (
+
+  <div className="sucesso-recuperacao">
+
+    <div className="icone-sucesso">
+      ✅
+    </div>
+
+    <h3>
+      Instruções enviadas
+    </h3>
+
+    <p>
+      Verifique seu e-mail corporativo para continuar a recuperação da senha.
+    </p>
+
+    <button
+      type="button"
+      className="enviar-modal"
+      onClick={() => {
+  setMostrarRecuperacaoSenha(false);
+  setEmailEnviado(false);
+}}
+    >
+      Fechar
+    </button>
+
+  </div>
+
+)}
+
+</div>
+
+    </div>
+
+)}
+
+  </div>
+
+);
 }
 
 return (
@@ -4945,15 +5332,16 @@ return true;
 
 </main>
 
-    <div
-      className="barra-scroll-historico"
-      ref={barraHistoricoRef}
-    >
-      <div className="barra-scroll-historico-conteudo"></div>
-    </div>
+<div
+  className="barra-scroll-historico"
+  ref={barraHistoricoRef}
+>
+  <div className="barra-scroll-historico-conteudo"></div>
+</div>
 
-  </div>
-)
+</div>
+
+);
 }
 
-export default App
+export default App;
