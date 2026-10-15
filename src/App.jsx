@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 
 import logoBBM from "./assets/logo-bbm.png";
-import loginBackground from "./assets/login-background.png";
 
 import "./App.css";
 
@@ -12,13 +11,8 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 const coresTipos = {
@@ -89,10 +83,7 @@ function TooltipLocalizacaoTipo({ active, payload, label }) {
 }
 
 function App() {
-  const [equipamentos, setEquipamentos] = useState(() => {
-  const equipamentosSalvos = localStorage.getItem("equipamentos");
-  return equipamentosSalvos ? JSON.parse(equipamentosSalvos) : [];
-});
+ const [equipamentos, setEquipamentos] = useState([]);
 
 const [anexos, setAnexos] = useState([]);
 const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
@@ -433,27 +424,6 @@ const quantidadePorLocalizacao = [
   },
 ];
 
-const quantidadePorStatus = [
-  {
-    status: "Disponível",
-    quantidade: equipamentos.filter(
-      (equipamento) => equipamento.status === "Disponível"
-    ).length,
-  },
-  {
-    status: "Em uso",
-    quantidade: equipamentos.filter(
-      (equipamento) => equipamento.status === "Em uso"
-    ).length,
-  },
-  {
-    status: "Manutenção",
-    quantidade: equipamentos.filter(
-      (equipamento) => equipamento.status === "Manutenção"
-    ).length,
-  },
-];
-
 const equipamentosPorLocalizacaoETipo = [
   {
     localizacao: "BBM",
@@ -659,27 +629,6 @@ const equipamentosPorLocalizacaoETipo = [
   },
 ];
 
-  async function carregarAnexos(equipamentoId) {
-  try {
-    const resposta = await fetch(
-      `http://127.0.0.1:8000/equipamentos/${equipamentoId}/anexos`
-    );
-
-    if (!resposta.ok) {
-      throw new Error("Erro ao carregar anexos.");
-    }
-
-    const dados = await resposta.json();
-
-    setAnexos(dados);
-
-    console.log("Anexos carregados:", dados);
-  } catch (erro) {
-    console.error("Erro ao carregar anexos:", erro);
-    setAnexos([]);
-  }
-}
-
 async function enviarAnexo(equipamentoId, arquivo) {
   if (!arquivo) {
     return;
@@ -818,8 +767,6 @@ function editarEquipamento(equipamento) {
   setLocalizacao(equipamento.localizacao || "");
   setMotivoManutencao("");
   setObservacaoManutencao("");
-  setMotivoManutencao("");
-  setObservacaoManutencao("");
 
   carregarAnexos(equipamento.id);
 }
@@ -844,11 +791,6 @@ function editarEquipamento(equipamento) {
     );
 
     setEquipamentos(equipamentosAtualizados);
-
-    localStorage.setItem(
-      "equipamentos",
-      JSON.stringify(equipamentosAtualizados)
-    );
 
     console.log(
       "Equipamento movido para a lixeira:",
@@ -1108,10 +1050,6 @@ setEquipamentoEditando(null);
 
   setEquipamentos(equipamentosAtualizados);
 
-  localStorage.setItem(
-    "equipamentos",
-    JSON.stringify(equipamentosAtualizados)
-  );
 
   setTipo("");
   setFabricante("");
