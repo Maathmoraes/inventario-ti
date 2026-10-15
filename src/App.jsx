@@ -2276,28 +2276,38 @@ return (
   type="button"
   onClick={() => {
   if (usuarioEditando) {
-    const usuariosAtualizados = usuarios.map((usuario) =>
-      usuario.id === usuarioEditando.id
-        ? {
-            ...usuario,
-            nome: nomeUsuario,
-            setor: setorUsuario,
-            email: emailUsuario,
-            senha: senhaUsuario,
-            perfil: perfilUsuario,
-          }
-        : usuario
-    );
-
-    setUsuarios(usuariosAtualizados);
-
-    localStorage.setItem(
-      "usuarios",
-      JSON.stringify(usuariosAtualizados)
-    );
-
-    setUsuarioEditando(null);
-  } else {
+  fetch(
+    `http://127.0.0.1:8000/usuarios/${usuarioEditando.id}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        nome: nomeUsuario,
+        setor: setorUsuario,
+        email: emailUsuario,
+        senha: senhaUsuario,
+        perfil: perfilUsuario
+      })
+    }
+  )
+    .then((resposta) => resposta.json())
+    .then(() =>
+      fetch("http://127.0.0.1:8000/usuarios")
+    )
+    .then((resposta) => resposta.json())
+    .then((dados) => {
+      setUsuarios(dados);
+      setUsuarioEditando(null);
+    })
+    .catch((erro) => {
+      console.error(
+        "Erro ao atualizar usuário:",
+        erro
+      );
+    });
+} else {
   fetch("http://127.0.0.1:8000/usuarios", {
     method: "POST",
     headers: {
