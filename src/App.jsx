@@ -1405,11 +1405,17 @@ useEffect(() => {
 }, [relatorioHistoricoAberto, historicoFiltrado.length]);
 
 useEffect(() => {
-  const usuariosSalvos = JSON.parse(
-    localStorage.getItem("usuarios") || "[]"
-  );
-
-  setUsuarios(usuariosSalvos);
+  fetch("http://127.0.0.1:8000/usuarios")
+    .then((resposta) => resposta.json())
+    .then((dados) => {
+      setUsuarios(dados);
+    })
+    .catch((erro) => {
+      console.error(
+        "Erro ao carregar usuários:",
+        erro
+      );
+    });
 }, []);
 
 if (!logado) {
@@ -1463,17 +1469,13 @@ if (!logado) {
   onSubmit={(event) => {
     event.preventDefault();
 
-    const usuariosSalvos = JSON.parse(
-      localStorage.getItem("usuarios") || "[]"
-    );
+    const usuarioEncontrado = usuarios.find(
+  (usuario) =>
+    usuario.email === emailLogin &&
+    usuario.senha === senhaLogin
+);
 
-    const usuarioEncontrado = usuariosSalvos.find(
-      (usuario) =>
-        usuario.email === emailLogin &&
-        usuario.senha === senhaLogin
-    );
-
-    if (!usuarioEncontrado) {
+if (!usuarioEncontrado) {
   alert("E-mail ou senha incorretos.");
   return;
 }
@@ -2296,26 +2298,36 @@ return (
 
     setUsuarioEditando(null);
   } else {
-    const usuariosSalvos = JSON.parse(
-      localStorage.getItem("usuarios") || "[]"
-    );
-
-    const novoUsuario = {
-      id: Date.now(),
+  fetch("http://127.0.0.1:8000/usuarios", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
       nome: nomeUsuario,
       setor: setorUsuario,
       email: emailUsuario,
       senha: senhaUsuario,
-      perfil: perfilUsuario,
-    };
-
-    usuariosSalvos.push(novoUsuario);
-
-    localStorage.setItem(
-      "usuarios",
-      JSON.stringify(usuariosSalvos)
-    );
-  }
+      perfil: perfilUsuario
+    })
+  })
+    .then((resposta) => resposta.json())
+    .then(() => {
+      return fetch(
+        "http://127.0.0.1:8000/usuarios"
+      );
+    })
+    .then((resposta) => resposta.json())
+    .then((dados) => {
+      setUsuarios(dados);
+    })
+    .catch((erro) => {
+      console.error(
+        "Erro ao cadastrar usuário:",
+        erro
+      );
+    });
+}
 
   setNomeUsuario("");
   setSetorUsuario("");
@@ -2419,16 +2431,12 @@ return (
           return;
         }
 
-        const usuariosAtualizados = usuarios.filter(
-          (item) => item.id !== usuario.id
-        );
-
-        setUsuarios(usuariosAtualizados);
-
-        localStorage.setItem(
-          "usuarios",
-          JSON.stringify(usuariosAtualizados)
-        );
+        fetch(
+  `http://127.0.0.1:8000/usuarios/${usuario.id}`,
+  {
+    method: "DELETE"
+  }
+)
       }}
     >
       🗑️ Excluir

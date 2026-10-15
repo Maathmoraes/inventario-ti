@@ -78,4 +78,15 @@ class Anexo(Base):
     data_upload = Column(String)
 
 
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String)
+    setor = Column(String)
+    email = Column(String, unique=True)
+    senha = Column(String)
+    perfil = Column(String)
+
+
 Base.metadata.create_all(bind=engine)

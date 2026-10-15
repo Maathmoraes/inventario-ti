@@ -7,7 +7,8 @@ from database import (
     Equipamento as EquipamentoDB,
     Historico as HistoricoDB,
     Manutencao as ManutencaoDB,
-    Anexo as AnexoDB
+    Anexo as AnexoDB,
+    Usuario as UsuarioDB
 )
 
 import shutil
@@ -106,28 +107,117 @@ class Equipamento(BaseModel):
     historico: list[Historico] = []
 
 
-@app.get("/")
-def inicio():
+class Usuario(BaseModel):
+    nome: str
+    setor: str
+    email: str
+    senha: str
+    perfil: str
+
+
+@app.post("/usuarios")
+def criar_usuario(usuario: Usuario):
+    db = SessionLocal()
+
+    novo_usuario = UsuarioDB(
+        nome=usuario.nome,
+        setor=usuario.setor,
+        email=usuario.email,
+        senha=usuario.senha,
+        perfil=usuario.perfil
+    )
+
+    db.add(novo_usuario)
+
+    db.commit()
+
+    db.refresh(novo_usuario)
+
+    db.close()
+
     return {
-        "mensagem": "API do Inventário TI funcionando!"
+        "mensagem": "Usuário cadastrado com sucesso!"
+    }
+
+
+@app.get("/usuarios")
+def listar_usuarios():
+    db = SessionLocal()
+
+    usuarios = db.query(
+        UsuarioDB
+    ).all()
+
+    db.close()
+
+    return usuarios
+
+
+@app.delete("/usuarios/{usuario_id}")
+def excluir_usuario(usuario_id: int):
+    db = SessionLocal()
+
+    usuario = db.query(
+        UsuarioDB
+    ).filter(
+        UsuarioDB.id == usuario_id
+    ).first()
+
+    if not usuario:
+        db.close()
+
+        return {
+            "erro": "Usuário não encontrado!"
+        }
+
+    db.delete(usuario)
+
+    db.commit()
+
+    db.close()
+
+    return {
+        "mensagem": "Usuário excluído com sucesso!"
+    }
+
+
+@app.put("/usuarios/{usuario_id}")
+def atualizar_usuario(
+    usuario_id: int,
+    usuario: Usuario
+):
+    db = SessionLocal()
+
+    usuario_existente = db.query(
+        UsuarioDB
+    ).filter(
+        UsuarioDB.id == usuario_id
+    ).first()
+
+    if not usuario_existente:
+        db.close()
+
+        return {
+            "erro": "Usuário não encontrado!"
+        }
+
+    usuario_existente.nome = usuario.nome
+    usuario_existente.setor = usuario.setor
+    usuario_existente.email = usuario.email
+    usuario_existente.senha = usuario.senha
+    usuario_existente.perfil = usuario.perfil
+
+    db.commit()
+
+    db.close()
+
+    return {
+        "mensagem": "Usuário atualizado com sucesso!"
     }
 
 
 @app.get("/equipamentos")
 def listar_equipamentos():
-    db = SessionLocal()
-
-    equipamentos = db.query(EquipamentoDB).filter(
-        EquipamentoDB.ativo == 1
-    ).all()
-
-    db.close()
-
-    return equipamentos
-
-
-@app.get("/manutencoes")
-def listar_manutencoes():
     db = SessionLocal()
 
     manutencoes = db.query(ManutencaoDB).all()
